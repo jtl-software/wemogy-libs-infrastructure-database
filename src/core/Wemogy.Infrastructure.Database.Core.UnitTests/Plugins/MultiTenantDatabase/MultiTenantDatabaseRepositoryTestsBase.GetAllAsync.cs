@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
+using Wemogy.Infrastructure.Database.Core.UnitTests.Extensions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
 
@@ -30,8 +31,12 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(new List<User> { msUser });
-        appleUserFromDb.Should().BeEquivalentTo(new List<User> { appleUser1, appleUser2, appleUser3 });
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(new List<User> { msUser });
+
+        // GetAllAsync carries no ORDER BY, so the provider owes no particular order for the three
+        // users - compared by id instead of by position
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETagAndOrder(
+            new List<User> { appleUser1, appleUser2, appleUser3 });
     }
 
     [Fact]
@@ -56,7 +61,11 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(new List<User> { msUser });
-        appleUserFromDb.Should().BeEquivalentTo(new List<User> { appleUser1, appleUser2, appleUser3 });
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(new List<User> { msUser });
+
+        // GetAllAsync carries no ORDER BY, so the provider owes no particular order for the three
+        // users - compared by id instead of by position
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETagAndOrder(
+            new List<User> { appleUser1, appleUser2, appleUser3 });
     }
 }

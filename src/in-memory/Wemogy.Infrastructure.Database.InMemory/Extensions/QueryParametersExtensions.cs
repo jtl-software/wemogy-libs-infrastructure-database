@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Wemogy.Core.Extensions;
 using Wemogy.Infrastructure.Database.Core.Enums;
+using Wemogy.Infrastructure.Database.Core.Serialization;
 using Wemogy.Infrastructure.Database.Core.ValueObjects;
 using Wemogy.Infrastructure.Database.InMemory.Helpers;
 
@@ -33,9 +34,10 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
             var propertyType = ResolvePropertyType<T>(propertyName);
             var searchAfterValue = querySorting.SearchAfter == null
                 ? null
-                : JsonConvert.DeserializeObject(
+                : JsonSerializer.Deserialize(
                     querySorting.SearchAfter,
-                    propertyType);
+                    propertyType,
+                    DatabaseJson.QueryValueOptions);
 
             MethodInfo? comparisonMethod = null;
             Expression searchAfterValueExpression = Expression.Constant(searchAfterValue);
@@ -56,16 +58,16 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                     searchAfterValueExpression,
                     guidToStringMethod);
             }
-            else if (propertyType == typeof(DateTime))
+            else if (propertyType == typeof(DateTime) || propertyType == typeof(DateTimeOffset))
             {
-                // DateTime is supported by Expression.GreaterThan
+                // both are supported by Expression.GreaterThan
             }
-            else if (propertyType == typeof(JValue))
+            else if (typeof(JsonNode).IsAssignableFrom(propertyType))
             {
                 comparisonMethod = typeof(string).GetMethod(
                     nameof(string.CompareTo),
                     new[] { typeof(string) });
-                var jValueToStringMethod = typeof(JValue).GetMethod(
+                var jValueToStringMethod = typeof(JsonNode).GetMethod(
                     nameof(string.ToString),
                     Type.EmptyTypes)!;
                 propertyExpression = Expression.Call(
@@ -82,12 +84,19 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                     new[] { propertyType });
             }
 
+            // the cursor has to move in the direction the column is ordered in. Comparing with
+            // "greater than" for a descending column returns the half of the result set the caller
+            // has already paged through.
             Expression searchExpr;
             if (comparisonMethod == null)
             {
-                searchExpr = Expression.GreaterThan(
-                    propertyExpression,
-                    searchAfterValueExpression);
+                searchExpr = querySorting.IsAscending
+                    ? Expression.GreaterThan(
+                        propertyExpression,
+                        searchAfterValueExpression)
+                    : Expression.LessThan(
+                        propertyExpression,
+                        searchAfterValueExpression);
             }
             else
             {
@@ -95,9 +104,13 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                     propertyExpression,
                     comparisonMethod,
                     searchAfterValueExpression);
-                searchExpr = Expression.GreaterThan(
-                    callExpr,
-                    Expression.Constant(0));
+                searchExpr = querySorting.IsAscending
+                    ? Expression.GreaterThan(
+                        callExpr,
+                        Expression.Constant(0))
+                    : Expression.LessThan(
+                        callExpr,
+                        Expression.Constant(0));
             }
 
             var myLambda =
@@ -118,7 +131,7 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
 
                         var propertyType = ResolvePropertyType<T>(propertyName);
 
-                        var searchAfterValue = JsonConvert.DeserializeObject(querySorting.SearchAfter, typeof(string));
+                        var searchAfterValue = JsonSerializer.Deserialize(querySorting.SearchAfter, typeof(string));
 
                         Expression searchExpr = Expression.GreaterThanOrEqual(prop, Expression.Constant(searchAfterValue));
 
@@ -292,10 +305,10 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                 valueType = valueType.GenericTypeArguments.FirstOrDefault() ?? valueType;
             }
 
-            // JsonConvert.Deserialize
-            var valueObj = JsonConvert.DeserializeObject(
+            var valueObj = JsonSerializer.Deserialize(
                 value,
-                valueType);
+                valueType,
+                DatabaseJson.QueryValueOptions);
 
             var constant = Expression.Constant(valueObj);
             return Expression.Convert(
@@ -473,8 +486,12 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                 var complexPropertyExpression = GetPropertyExpression(
                     pathToTheComplexProperty,
                     parameterExpression);
+
+                // ResolvePropertyType understands the dot separated path used here. Wemogy.Core's
+                // ResolvePropertyTypeOfPropertyPath does not: it splits on '/' and drops the first
+                // segment, so every dot path resolved to an empty property name and threw.
                 var complexPropertyType =
-                    typeof(T).ResolvePropertyTypeOfPropertyPath(pathToTheComplexProperty)!; // will be a list for now
+                    ResolvePropertyType<T>(pathToTheComplexProperty); // will be a list for now
                 var innerParameterExpressionType =
                     complexPropertyType.GenericTypeArguments.First(); // List<Version> ==> Version
 
@@ -485,9 +502,13 @@ namespace Wemogy.Infrastructure.Database.InMemory.Extensions
                         innerParameterExpressionType,
                         innerParameterExpressionName);
 
-                // build the query filter for the inner parameter expression
+                // build the query filter for the inner parameter expression. Everything after the
+                // kind and its '>' is the property path inside the collection item, e.g.
+                // versions<ANY>name ==> name. Substring is taken from the original identifier,
+                // because re-joining the split segments dropped the first character of the path.
                 var innerQueryFilter = queryFilter.Clone();
-                innerQueryFilter.Property = complexTypeIdentifierEndSplit.Skip(1).Join(">").Substring(1);
+                innerQueryFilter.Property = complexTypeIdentifierSplit[1]
+                    .Substring(complexPropertyKind.Length + 1);
 
                 var innerExpression = (Expression)typeof(QueryParametersExtensions)
                     .GetMethod(nameof(GetQueryFilterExpression))?.MakeGenericMethod(innerParameterExpressionType)

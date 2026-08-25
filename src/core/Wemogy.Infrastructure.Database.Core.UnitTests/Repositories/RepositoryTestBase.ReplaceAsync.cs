@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Wemogy.Core.Errors.Exceptions;
+using Wemogy.Infrastructure.Database.Core.UnitTests.Extensions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
 
@@ -16,7 +17,7 @@ public partial class RepositoryTestBase
         var user = User.Faker.Generate();
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundErrorException>(() => MicrosoftUserRepository.ReplaceAsync(user));
+        await Should.ThrowAsync<NotFoundErrorException>(() => MicrosoftUserRepository.ReplaceAsync(user));
     }
 
     [Fact]
@@ -28,15 +29,16 @@ public partial class RepositoryTestBase
         var id = user.Id;
         var tenantId = user.TenantId;
         var created = await MicrosoftUserRepository.CreateAsync(user);
-        created.TenantId.Should().Be(user.TenantId);
+        created.TenantId.ShouldBe(user.TenantId);
 
-        var updatedUser = User.Faker.Generate();
-        updatedUser.Id = id;
+        var updatedUser = User.Faker
+            .RuleFor(x => x.Id, id)
+            .Generate();
         updatedUser.TenantId = tenantId;
 
         // Act
         var finalUser = await MicrosoftUserRepository.ReplaceAsync(updatedUser);
 
-        finalUser.Should().BeEquivalentTo(updatedUser);
+        finalUser.ShouldBeEquivalentToIgnoringETag(updatedUser);
     }
 }

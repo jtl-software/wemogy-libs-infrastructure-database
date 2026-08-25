@@ -13,17 +13,22 @@ public abstract class EntityBase : IEntityBase
     protected EntityBase(string id)
     {
         Id = id;
-        CreatedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
+        CreatedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = CreatedAt;
     }
 
     [SoftDeleteFlag]
     public bool IsDeleted { get; set; }
 
     [Id]
-    public string Id { get; set; }
+    public string Id { get; init; }
 
-    public DateTime CreatedAt { get; set; }
+    [ETag]
+    public string? ETag { get; init; }
 
-    public DateTime UpdatedAt { get; set; }
+    [UtcDateTimeOffset]
+    public DateTimeOffset CreatedAt { get; set; }
+
+    [UtcDateTimeOffset]
+    public DateTimeOffset UpdatedAt { get; set; }
 }

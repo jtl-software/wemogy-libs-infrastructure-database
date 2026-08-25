@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
+using Wemogy.Infrastructure.Database.Core.UnitTests.Extensions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
 
@@ -21,24 +22,25 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         await AppleUserRepository.CreateAsync(user2);
 
         var msUsers = await MicrosoftUserRepository.GetAllAsync();
-        msUsers.First().Should().BeEquivalentTo(user1);
+        msUsers.First().ShouldBeEquivalentToIgnoringETag(user1);
         var appleUser = await AppleUserRepository.GetAllAsync();
-        appleUser.First().Should().BeEquivalentTo(user2);
+        appleUser.First().ShouldBeEquivalentToIgnoringETag(user2);
 
-        var updatedUser = User.Faker.Generate();
-        updatedUser.Id = user1Id;
+        var updatedUser = User.Faker
+            .RuleFor(x => x.Id, user1Id)
+            .Generate();
         updatedUser.TenantId = user1TenantId;
 
         // Act
         var msFinalUser = await MicrosoftUserRepository.ReplaceAsync(updatedUser);
 
         // Assert
-        msFinalUser.Should().BeEquivalentTo(updatedUser);
+        msFinalUser.ShouldBeEquivalentToIgnoringETag(updatedUser);
         msUsers = await MicrosoftUserRepository.GetAllAsync();
-        msUsers.Count.Should().Be(1);
-        msUsers.First().Should().BeEquivalentTo(updatedUser);
+        msUsers.Count.ShouldBe(1);
+        msUsers.First().ShouldBeEquivalentToIgnoringETag(updatedUser);
 
         appleUser = await AppleUserRepository.GetAllAsync();
-        appleUser.First().Should().BeEquivalentTo(user2); // should not update
+        appleUser.First().ShouldBeEquivalentToIgnoringETag(user2); // should not update
     }
 }

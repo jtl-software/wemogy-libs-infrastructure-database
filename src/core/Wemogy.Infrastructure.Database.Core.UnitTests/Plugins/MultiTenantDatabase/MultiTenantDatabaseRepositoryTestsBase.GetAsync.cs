@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Wemogy.Core.Errors.Exceptions;
+using Wemogy.Infrastructure.Database.Core.UnitTests.Extensions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
 
@@ -27,8 +28,8 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
             user2.TenantId);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
@@ -36,13 +37,13 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
             () => MicrosoftUserRepository.GetAsync(
                 user2.Id,
                 user2.TenantId));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
         var exception2 = await Record.ExceptionAsync(
             () => AppleUserRepository.GetAsync(
                 user1.Id,
                 user1.TenantId));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -61,17 +62,17 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         var appleUserFromDb = await AppleUserRepository.GetAsync(user2.Id);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         var exception1 = await Record.ExceptionAsync(() => MicrosoftUserRepository.GetAsync(user2.Id));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
 
         var exception2 = await Record.ExceptionAsync(() => AppleUserRepository.GetAsync(user1.Id));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -90,17 +91,17 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         var appleUserFromDb = await AppleUserRepository.GetAsync(u => u.Lastname == user2.Lastname);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         var exception1 = await Record.ExceptionAsync(() => MicrosoftUserRepository.GetAsync(user2.Id));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
 
         var exception2 = await Record.ExceptionAsync(() => AppleUserRepository.GetAsync(user1.Id));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -121,8 +122,8 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
     }
 
     [Fact]
@@ -147,8 +148,8 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
             user2.TenantId);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
@@ -156,14 +157,14 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
             () => MicrosoftUserRepository.GetAsync(
                 user2.Id,
                 user2.TenantId));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
 
         var exception2 = await Record.ExceptionAsync(
             () => AppleUserRepository.GetAsync(
                 user1.Id,
                 user1.TenantId));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -185,17 +186,17 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         var appleUserFromDb = await AppleUserRepository.GetAsync(user2.Id);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         var exception1 = await Record.ExceptionAsync(() => MicrosoftUserRepository.GetAsync(user2.Id));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
 
         var exception2 = await Record.ExceptionAsync(() => AppleUserRepository.GetAsync(user1.Id));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -217,17 +218,17 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         var appleUserFromDb = await AppleUserRepository.GetAsync(u => u.Lastname == user2.Lastname);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
         AssertPartitionKeyPrefixIsRemoved(msUserFromDb);
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         var exception1 = await Record.ExceptionAsync(() => MicrosoftUserRepository.GetAsync(user2.Id));
-        exception1.Should().BeOfType<NotFoundErrorException>();
+        exception1.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception1);
 
         var exception2 = await Record.ExceptionAsync(() => AppleUserRepository.GetAsync(user1.Id));
-        exception2.Should().BeOfType<NotFoundErrorException>();
+        exception2.ShouldBeOfType<NotFoundErrorException>();
         AssertExceptionMessageDoesNotContainPrefix(exception2);
     }
 
@@ -251,7 +252,7 @@ public partial class MultiTenantDatabaseRepositoryTestsBase
         AssertPartitionKeyPrefixIsRemoved(appleUserFromDb);
 
         // Assert
-        msUserFromDb.Should().BeEquivalentTo(user1);
-        appleUserFromDb.Should().BeEquivalentTo(user2);
+        msUserFromDb.ShouldBeEquivalentToIgnoringETag(user1);
+        appleUserFromDb.ShouldBeEquivalentToIgnoringETag(user2);
     }
 }

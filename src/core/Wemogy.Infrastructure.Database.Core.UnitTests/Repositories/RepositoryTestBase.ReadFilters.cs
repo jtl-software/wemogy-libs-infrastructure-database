@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Wemogy.Core.Errors.Exceptions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
@@ -16,14 +16,14 @@ public partial class RepositoryTestBase
         await ResetAsync();
         var user = User.Faker.Generate();
         user.Firstname = "John";
-        await MicrosoftUserRepository.CreateAsync(user);
+        await FilteredUserRepository.CreateAsync(user);
 
         // Act
-        var exception = await Record.ExceptionAsync(() => MicrosoftUserRepository.GetAsync(user.Id));
+        var exception = await Record.ExceptionAsync(() => FilteredUserRepository.GetAsync(user.Id));
 
         // Assert
-        exception.Should().NotBeNull();
-        exception.Should().BeOfType<NotFoundErrorException>();
+        exception.ShouldNotBeNull();
+        exception.ShouldBeOfType<NotFoundErrorException>();
     }
 
     [Fact]
@@ -33,17 +33,17 @@ public partial class RepositoryTestBase
         await ResetAsync();
         var user1 = User.Faker.Generate();
         user1.Firstname = "John";
-        await MicrosoftUserRepository.CreateAsync(user1);
+        await FilteredUserRepository.CreateAsync(user1);
         var user2 = User.Faker.Generate();
         user2.Firstname = "Not John";
-        await MicrosoftUserRepository.CreateAsync(user2);
+        await FilteredUserRepository.CreateAsync(user2);
 
         // Act
-        var result = await MicrosoftUserRepository.QueryAsync(x => true);
+        var result = await FilteredUserRepository.QueryAsync(x => true);
 
         // Assert
-        result.Should().HaveCount(1);
-        result.First().Firstname.Should().Be(user2.Firstname);
+        result.ShouldHaveSingleItem();
+        result.First().Firstname.ShouldBe(user2.Firstname);
     }
 
     [Fact]
@@ -53,17 +53,17 @@ public partial class RepositoryTestBase
         await ResetAsync();
         var user1 = User.Faker.Generate();
         user1.Firstname = "John";
-        await MicrosoftUserRepository.CreateAsync(user1);
+        await FilteredUserRepository.CreateAsync(user1);
         var user2 = User.Faker.Generate();
         user2.Firstname = "Not John";
-        await MicrosoftUserRepository.CreateAsync(user2);
+        await FilteredUserRepository.CreateAsync(user2);
 
         // Act
-        var result = await MicrosoftUserRepository.GetAllAsync();
+        var result = await FilteredUserRepository.GetAllAsync();
 
         // Assert
-        result.Should().HaveCount(1);
-        result.First().Firstname.Should().Be(user2.Firstname);
+        result.ShouldHaveSingleItem();
+        result.First().Firstname.ShouldBe(user2.Firstname);
     }
 
     [Fact]
@@ -73,20 +73,20 @@ public partial class RepositoryTestBase
         await ResetAsync();
         var user1 = User.Faker.Generate();
         user1.Firstname = "John";
-        await MicrosoftUserRepository.CreateAsync(user1);
+        await FilteredUserRepository.CreateAsync(user1);
         var user2 = User.Faker.Generate();
         user2.Firstname = "Not John";
-        await MicrosoftUserRepository.CreateAsync(user2);
+        await FilteredUserRepository.CreateAsync(user2);
         var count = 0;
 
         // Act
-        await MicrosoftUserRepository.IterateAsync(x => true, x =>
+        await FilteredUserRepository.IterateAsync(x => true, x =>
         {
             count++;
-            x.Firstname.Should().NotBe(user1.Firstname);
+            x.Firstname.ShouldNotBe(user1.Firstname);
         });
 
         // Assert
-        count.Should().Be(1);
+        count.ShouldBe(1);
     }
 }

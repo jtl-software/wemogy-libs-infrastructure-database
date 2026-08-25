@@ -1,8 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Shouldly;
 using Wemogy.Core.Errors.Exceptions;
 using Wemogy.Infrastructure.Database.Core.Errors;
+using Wemogy.Infrastructure.Database.Core.UnitTests.Extensions;
 using Wemogy.Infrastructure.Database.Core.UnitTests.Fakes.Entities;
 using Xunit;
 
@@ -22,7 +23,7 @@ public partial class RepositoryTestBase
         var userFromDb = await MicrosoftUserRepository.GetAsync(user.Id);
 
         // Assert
-        userFromDb.Should().BeEquivalentTo(user);
+        userFromDb.ShouldBeEquivalentToIgnoringETag(user);
     }
 
     [Fact]
@@ -37,7 +38,7 @@ public partial class RepositoryTestBase
         var userFromDb = await MicrosoftUserRepository.GetAsync(x => x.Id == user.Id);
 
         // Assert
-        userFromDb.Should().BeEquivalentTo(user);
+        userFromDb.ShouldBeEquivalentToIgnoringETag(user);
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public partial class RepositoryTestBase
         var userFromDb = await MicrosoftUserRepository.GetAsync(x => x.Id == user.Id && x.TenantId == user.TenantId);
 
         // Assert
-        userFromDb.Should().BeEquivalentTo(user);
+        userFromDb.ShouldBeEquivalentToIgnoringETag(user);
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public partial class RepositoryTestBase
         await ResetAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundErrorException>(
+        await Should.ThrowAsync<NotFoundErrorException>(
             () => MicrosoftUserRepository.GetAsync(Guid.NewGuid().ToString()));
     }
 
@@ -80,7 +81,7 @@ public partial class RepositoryTestBase
             user.TenantId);
 
         // Assert
-        userFromDb.Should().BeEquivalentTo(user);
+        userFromDb.ShouldBeEquivalentToIgnoringETag(user);
     }
 
     [Fact]
@@ -92,7 +93,8 @@ public partial class RepositoryTestBase
         var partitionKey = Guid.NewGuid().ToString();
         var notFoundException = DatabaseError.EntityNotFound(
             id,
-            partitionKey);
+            partitionKey,
+            hint: nameof(User));
 
         // Act
         var exception = await Record.ExceptionAsync(
@@ -101,9 +103,10 @@ public partial class RepositoryTestBase
                 partitionKey));
 
         // Act & Assert
-        exception.Should().BeOfType<NotFoundErrorException>()
-            .Which.Code.Should().Be(notFoundException.Code);
-        exception.Should().BeOfType<NotFoundErrorException>()
-            .Which.Description.Should().Be(notFoundException.Description);
+        exception.ShouldSatisfyAllConditions(
+                () => exception.ShouldBeOfType<NotFoundErrorException>()
+                    .Code.ShouldBe(notFoundException.Code),
+                () => exception.ShouldBeOfType<NotFoundErrorException>()
+                    .Description.ShouldBe(notFoundException.Description));
     }
 }
